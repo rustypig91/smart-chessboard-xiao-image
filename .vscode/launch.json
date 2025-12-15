@@ -1,0 +1,35 @@
+{
+    // See https://code.visualstudio.com/docs/editor/debugging for more information
+    "version": "0.2.0",
+    "configurations": [
+        {
+            /* Configuration for debugging the CM0 core by attching to the running application. */
+            "name": "Launch",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "device": "ATSAMD21G18A",
+            "gdbPath": "C:/Users/chris/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb.exe",
+            "executable": "./build/zephyr/zephyr.elf",
+            "interface": "swd",
+            "servertype": "jlink",
+            "serverpath": "C:/Program Files/SEGGER/JLink/JLinkGDBServerCL.exe",
+            "svdFile": "${workspaceFolder}/ATSAMD21G18A.svd",
+            "preLaunchTask": "West Build (seeeduino_xiao)"
+        },
+        {
+            /* Configuration for debugging the CM0 core by attching to the running application. */
+            "name": "Attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "device": "ATSAMD21G18A",
+            "gdbPath": "C:/Users/chris/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb.exe",
+            "executable": "./build/zephyr/zephyr.elf",
+            "interface": "swd",
+            "servertype": "jlink",
+            "serverpath": "C:/Program Files/SEGGER/JLink/JLinkGDBServerCL.exe",
+            "svdFile": "${workspaceFolder}/ATSAMD21G18A.svd",
+        },
+    ]
+}
