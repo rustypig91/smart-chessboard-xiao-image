@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    # branches:
+    #   - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+
+env:
+  BOARD: ${{ github.event.inputs.board != '' && github.event.inputs.board || (vars.ZEPHYR_BOARD != '' && vars.ZEPHYR_BOARD) || 'seeeduino_xiao' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Setup Zephyr project
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: 'arm-zephyr-eabi'
+          sdk-version: 0.17.4
+
+      - name: Build
+        run: |
+          west build --board seeeduino_xiao --build-dir build app
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: zephyr-seeeduino_xiao-artifacts
+          path: |
+            build/zephyr/zephyr.elf
+            build/zephyr/zephyr.bin
+            build/zephyr/zephyr.uf2
+            build/zephyr/zephyr.map
+
+      - name: Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/zephyr/zephyr.elf
+            build/zephyr/zephyr.bin
+            build/zephyr/zephyr.uf2
+            build/zephyr/zephyr.map
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

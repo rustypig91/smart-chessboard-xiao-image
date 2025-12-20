@@ -3,7 +3,7 @@
 workspace=$(realpath "$(dirname "$0")")
 
 if [ $# -eq 0 ]; then
-    CMD="west build -b seeeduino_xiao application/app/"
+    CMD="west build -b seeeduino_xiao ./app/"
 else     
     CMD="$*"
 fi

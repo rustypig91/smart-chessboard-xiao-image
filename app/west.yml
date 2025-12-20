@@ -6,9 +6,12 @@ manifest:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
 
+
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
       revision: 91b1b84eee8159ce9706e8e0a3826cea04a09170
-      import: true
-
+      import:
+        name-allowlist:
+          - hal_atmel
+          - cmsis_6
