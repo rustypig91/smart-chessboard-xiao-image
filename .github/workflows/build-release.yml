@@ -1,17 +1,9 @@
-name: Build
+name: Build and release
 
 on:
   push:
-    # branches:
-    #   - main
     tags:
       - 'v*'
-  pull_request:
-  workflow_dispatch:
-
-
-env:
-  BOARD: ${{ github.event.inputs.board != '' && github.event.inputs.board || (vars.ZEPHYR_BOARD != '' && vars.ZEPHYR_BOARD) || 'seeeduino_xiao' }}
 
 jobs:
   build:
@@ -37,18 +29,7 @@ jobs:
         run: |
           west build --board seeeduino_xiao --build-dir build app
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: zephyr-seeeduino_xiao-artifacts
-          path: |
-            build/zephyr/zephyr.elf
-            build/zephyr/zephyr.bin
-            build/zephyr/zephyr.uf2
-            build/zephyr/zephyr.map
-
       - name: Release
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v1
         with:
           files: |

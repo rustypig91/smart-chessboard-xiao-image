@@ -215,15 +215,11 @@ static int read_adc_channel(const int index, int32_t *val_mv, uint8_t num_measur
 
 	*val_mv = 0;
 
-	// for (uint8_t i = 0; i < num_measurements; i++) {
-		ret = adc_read_dt(&adc_channels[index], &sequence);
-		if (ret != 0) {
-			LOG_ERR("Failed to read ADC channel %d (err %d)", index, ret);
-			return ret;
-		}
-		// *val_mv += buf;
-	// }
-	// *val_mv /= num_measurements;
+	ret = adc_read_dt(&adc_channels[index], &sequence);
+	if (ret != 0) {
+		LOG_ERR("Failed to read ADC channel %d (err %d)", index, ret);
+		return ret;
+	}
 
 	return adc_raw_to_millivolts_dt(&adc_channels[index], val_mv);
 }
