@@ -11,9 +11,7 @@
 
 LOG_MODULE_REGISTER(chessboard, LOG_LEVEL_INF);
 
-#define HAL_SENSOR_OCCUPIED_OFFSET_MV   (int32_t)100
-#define HAL_SENSOR_UNOCCUPIED_OFFSET_MV (HAL_SENSOR_OCCUPIED_OFFSET_MV * 2 / 3)
-#define HAL_NUM_MEASUREMENTS            (uint8_t)32
+#define HAL_NUM_MEASUREMENTS            (uint8_t)1
 
 #define GET_INDEX(file, rank) ((rank) * 8 + (file))
 
@@ -47,7 +45,6 @@ static bool hal_sensor_inverted[8] = {
 static const struct adc_dt_spec adc_channels[] = {
 	DT_FOREACH_PROP_ELEM(DT_PATH(zephyr_user), io_channels, DT_SPEC_AND_COMMA)};
 
-static CHESS_PIECE chess_pieces[64] = {CHESS_PIECE_NONE};
 static int32_t chess_pieces_mv[64] = {0};
 
 static int select_multiplexer_channel(uint8_t channel);
@@ -59,7 +56,6 @@ int chessboard_scan_file(uint8_t file)
 		return -EINVAL;
 	}
 
-	CHESS_PIECE piece;
 	int32_t offset;
 	for (int multiplexer_channel = 0; multiplexer_channel < 8; multiplexer_channel++) {
 
@@ -89,22 +85,6 @@ int chessboard_scan_file(uint8_t file)
 		chess_pieces_mv[index] = val_mv;
 		offset = chessboard_calibration_get_mv(file, rank) - val_mv;
 
-		if (offset < (-HAL_SENSOR_OCCUPIED_OFFSET_MV)) {
-			piece = CHESS_PIECE_BLACK;
-		} else if (offset > (HAL_SENSOR_OCCUPIED_OFFSET_MV)) {
-			piece = CHESS_PIECE_WHITE;
-		} else if ((offset >= (-HAL_SENSOR_UNOCCUPIED_OFFSET_MV)) &&
-			   (offset <= (HAL_SENSOR_UNOCCUPIED_OFFSET_MV))) {
-			piece = CHESS_PIECE_NONE;
-		} else {
-			/*
-			 * This ensures that noise around the threshold values does not
-			 * cause constant changes between states.
-			 */
-			piece = chess_pieces[index];
-		}
-
-		chess_pieces[index] = piece;
 
 		if (ret != 0) {
 			LOG_ERR("Error reading square %02d: %d", index, ret);
@@ -115,7 +95,6 @@ int chessboard_scan_file(uint8_t file)
 
 int chessboard_scan(void)
 {
-	CHESS_PIECE piece;
 	int32_t offset;
 	for (int multiplexer_channel = 0; multiplexer_channel < 8; multiplexer_channel++) {
 
@@ -147,23 +126,6 @@ int chessboard_scan(void)
 			chess_pieces_mv[index] = val_mv;
 			offset = chessboard_calibration_get_mv(file, rank) - val_mv;
 
-			if (offset < (-HAL_SENSOR_OCCUPIED_OFFSET_MV)) {
-				piece = CHESS_PIECE_BLACK;
-			} else if (offset > (HAL_SENSOR_OCCUPIED_OFFSET_MV)) {
-				piece = CHESS_PIECE_WHITE;
-			} else if ((offset >= (-HAL_SENSOR_UNOCCUPIED_OFFSET_MV)) &&
-				   (offset <= (HAL_SENSOR_UNOCCUPIED_OFFSET_MV))) {
-				piece = CHESS_PIECE_NONE;
-			} else {
-				/*
-				 * This ensures that noise around the threshold values does not
-				 * cause constant changes between states.
-				 */
-				piece = chess_pieces[index];
-			}
-
-			chess_pieces[index] = piece;
-
 			if (ret != 0) {
 				LOG_ERR("Error reading square %02d: %d", index, ret);
 			}
@@ -188,14 +150,6 @@ int32_t chessboard_get_mv_offset(uint8_t file, uint8_t rank)
 	}
 	int index = GET_INDEX(file, rank);
 	return chessboard_calibration_get_mv(file, rank) - chess_pieces_mv[index];
-}
-
-CHESS_PIECE chessboard_get_color(uint8_t file, uint8_t rank)
-{
-	if (file > 7 || rank > 7) {
-		return CHESS_PIECE_NONE;
-	}
-	return chess_pieces[GET_INDEX(file, rank)];
 }
 
 static int select_multiplexer_channel(uint8_t channel)
@@ -237,10 +191,9 @@ static int read_adc_channel(const int index, int32_t *val_mv, uint8_t num_measur
 		return 0;
 	}
 
-	int32_t buf;
 	struct adc_sequence sequence = {
-		.buffer = &buf,
-		.buffer_size = sizeof(buf),
+		.buffer = val_mv,
+		.buffer_size = sizeof(*val_mv),
 	};
 
 	if (!adc_is_ready_dt(&adc_channels[index])) {
@@ -262,15 +215,15 @@ static int read_adc_channel(const int index, int32_t *val_mv, uint8_t num_measur
 
 	*val_mv = 0;
 
-	for (uint8_t i = 0; i < num_measurements; i++) {
+	// for (uint8_t i = 0; i < num_measurements; i++) {
 		ret = adc_read_dt(&adc_channels[index], &sequence);
 		if (ret != 0) {
 			LOG_ERR("Failed to read ADC channel %d (err %d)", index, ret);
 			return ret;
 		}
-		*val_mv += buf;
-	}
-	*val_mv /= num_measurements;
+		// *val_mv += buf;
+	// }
+	// *val_mv /= num_measurements;
 
 	return adc_raw_to_millivolts_dt(&adc_channels[index], val_mv);
 }

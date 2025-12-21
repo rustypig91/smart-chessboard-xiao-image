@@ -1,6 +1,6 @@
 CompileFlags:
-    CompilationDatabase: ./build/
-    # Add:
-    #     - "-log=verbose"
-    #     - "-pretty"
-    #     - "--background-index"
+    CompilationDatabase: ./build/debug/
+    Add:
+        - "-log=verbose"
+        - "-pretty"
+        - "--background-index"

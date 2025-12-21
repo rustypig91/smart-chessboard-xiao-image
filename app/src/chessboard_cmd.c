@@ -1,6 +1,6 @@
 #include "chessboard.h"
 #include "chessboard_calibration.h"
-#include "zephyr/kernel.h"
+#include <zephyr/kernel.h>
 #include <zephyr/console/console.h>
 #include <zephyr/shell/shell.h>
 
@@ -133,30 +133,6 @@ static int cmd_set_board_calibration(const struct shell *sh, size_t argc, char *
 	return 0;
 }
 
-static int cmd_print_board_pieces(const struct shell *sh, size_t argc, char **argv)
-{
-	for (int rank = 7; rank >= 0; rank--) {
-		shell_fprintf(sh, SHELL_NORMAL, "%d |", rank + 1);
-		for (int file = 0; file < 8; file++) {
-			CHESS_PIECE piece = chessboard_get_color(file, rank);
-			char color = piece == CHESS_PIECE_NONE
-					     ? ' '
-					     : (piece == CHESS_PIECE_BLACK ? 'B' : 'W');
-
-			shell_fprintf(sh, SHELL_NORMAL, "  %c  |", color);
-		}
-		shell_fprintf(sh, SHELL_NORMAL, "\n");
-	}
-
-	shell_fprintf(sh, SHELL_NORMAL, "-------------------------------\n");
-	shell_fprintf(sh, SHELL_NORMAL,
-		      //    1 |  B  |  W  |     |     |     |     |     |     |
-		      "     A    B    C    D    E    F    G    H\n");
-
-	shell_fprintf(sh, SHELL_NORMAL, "\n");
-	return 0;
-}
-
 SHELL_STATIC_SUBCMD_SET_CREATE(calib_cmds,
 			       SHELL_CMD(get, NULL, "Print the chess board calibration",
 					 cmd_print_board_calibration),
@@ -179,7 +155,6 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 		  "Print the chess board voltage offset from calibration value in millivolts",
 		  cmd_print_board_offset_voltage),
 	SHELL_CMD(calib, &calib_cmds, "Chess board calibration commands", NULL),
-	SHELL_CMD(pieces, NULL, "Print the chess board pieces", cmd_print_board_pieces),
 	SHELL_CMD(monitor, &monitor, "Monitor chess board values", NULL), SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(board, &chess_cmds, "Chess board commands", NULL);

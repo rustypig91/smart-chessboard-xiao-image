@@ -19,8 +19,7 @@ int main(void)
 	const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 	uint32_t dtr = 0;
 
-	bool status = gpio_is_ready_dt(&led);
-	__ASSERT(status, "Error: GPIO Device not ready");
+	__ASSERT(gpio_is_ready_dt(&led), "Error: GPIO Device not ready");
 
 	gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 

@@ -20,13 +20,13 @@
 		zephyr,console = &cdc_acm_uart0;
 		zephyr,shell-uart = &cdc_acm_uart0;
 	};
-	
+
 	aliases {
 		channel-select-a = &channel_select_a;
 		channel-select-b = &channel_select_b;
 		channel-select-c = &channel_select_c;
 	};
-	
+
 	pins {
 		compatible = "gpio-leds";
 		channel_select_a: channel-select-a {
@@ -93,72 +93,80 @@ A3 - PA11B_ADC_AIN19
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <0>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@4 {
 		reg = <4>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <4>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@12 {
 		reg = <0x12>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <0x12>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@13 {
 		reg = <0x13>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <0x13>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@10 {
 		reg = <0x10>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <0x10>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@11 {
 		reg = <0x11>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <0x11>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@2 {
 		reg = <2>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <2>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 	channel@6 {
 		reg = <6>;
 		zephyr,gain = "ADC_GAIN_1_2";
 		zephyr,reference = "ADC_REF_VDD_1_2";
 		zephyr,vref-mv = <1650>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 4)>;
 		zephyr,input-positive = <6>;
 		zephyr,resolution = <12>;
+		zephyr,oversampling = <10>;
 	};
 };
 

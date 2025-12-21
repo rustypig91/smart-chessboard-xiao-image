@@ -20,19 +20,9 @@
 #define CHESS_RANK_7 6
 #define CHESS_RANK_8 7
 
-typedef enum {
-	CHESS_PIECE_NONE,
-	CHESS_PIECE_BLACK,
-	CHESS_PIECE_WHITE
-} CHESS_PIECE;
-
 int chessboard_scan_file(uint8_t file);
 int chessboard_scan(void);
 int chessboard_calibrate(void);
 int32_t chessboard_get_mv(uint8_t file, uint8_t rank);
 int32_t chessboard_get_mv_offset(uint8_t file, uint8_t rank);
-
-
-
-CHESS_PIECE chessboard_get_color(uint8_t file, uint8_t rank);
 

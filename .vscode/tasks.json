@@ -3,13 +3,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build (seeeduino_xiao)",
+            "label": "Build debug",
             "type": "shell",
             "command": "${workspaceFolder}/docker_build.sh",
-            "args": [],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "args": [
+                "west build -b seeeduino_xiao app --build-dir build/debug -- -DEXTRA_CONF_FILE=prj-debug.conf"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -17,23 +16,46 @@
             "problemMatcher": []
         },
         {
-            "label": "Clean build (seeeduino_xiao)",
+            "label": "Clean build debug",
             "type": "shell",
             "command": "${workspaceFolder}/docker_build.sh",
             "args": [
-                "west build -p always -b seeeduino_xiao application/app/"
+                "west build -b seeeduino_xiao app --build-dir build/debug -p always -- -DEXTRA_CONF_FILE=prj-debug.conf"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
             "problemMatcher": []
-        }
-
+        },
+        {
+            "label": "Build release",
+            "type": "shell",
+            "command": "${workspaceFolder}/docker_build.sh",
+            "args": [
+                "west build -b seeeduino_xiao app --build-dir build/release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean build release",
+            "type": "shell",
+            "command": "${workspaceFolder}/docker_build.sh",
+            "args": [
+                "west build -b seeeduino_xiao app --build-dir build/release -p always"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": []
+        },
     ]
 }
+
 
 
