@@ -4,6 +4,7 @@
 #include <zephyr/console/console.h>
 #include <zephyr/shell/shell.h>
 #include <stdlib.h>
+#include <string.h>
 
 char *shell_getline(const struct shell *shell, char *buf, const size_t len)
 {
@@ -103,7 +104,7 @@ static int monitor_file(const struct shell *sh, int32_t (*get_value_func)(uint8_
 }
 
 static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv,
-				    uint32_t interval_ms)
+				    int32_t hysteresis_mv)
 {
 #define STATE_BELOW_THRESHOLD  0
 #define STATE_ABOVE_THRESHOLD  1
@@ -111,9 +112,9 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv
 #define STATE_UNKNOWN          3
 
 	uint8_t prev_state[8][8];
-	for (int f = 0; f < 8; f++) {
-		for (int r = 0; r < 8; r++) {
-			prev_state[f][r] = STATE_UNKNOWN;
+	for (int file = 0; file < 8; file++) {
+		for (int rank = 0; rank < 8; rank++) {
+			prev_state[file][rank] = STATE_UNKNOWN;
 		}
 	}
 
@@ -124,39 +125,30 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv
 
 		for (uint8_t rank = CHESS_RANK_1; rank <= CHESS_RANK_8; rank++) {
 			int32_t mv = chessboard_get_mv_offset(file, rank);
-			if (mv < 0) {
-				mv = -mv;
+
+			int32_t lower = -threshold_mv;
+			int32_t upper = threshold_mv;
+
+			if (prev_state[file][rank] == STATE_ABOVE_THRESHOLD) {
+				upper -= hysteresis_mv;
+			} else if (prev_state[file][rank] == STATE_BELOW_THRESHOLD) {
+				lower += hysteresis_mv;
 			}
 
-			const bool above = mv > threshold_mv;
-			const bool below = mv < threshold_mv;
-			if (prev_state[file][rank] == STATE_UNKNOWN) {
-				// First reading, just set the state
-				if (above) {
-					prev_state[file][rank] = STATE_ABOVE_THRESHOLD;
-				} else if (below) {
-					prev_state[file][rank] = STATE_BELOW_THRESHOLD;
-				} else {
-					prev_state[file][rank] = STATE_WITHIN_THRESHOLD;
-				}
-			} else if (prev_state[file][rank] != STATE_ABOVE_THRESHOLD && above) {
-				shell_print(sh,
-					    "Offset crossed above threshold on %c%d: %d mV",
-					    'A' + file, rank + 1,
-					    chessboard_get_mv_offset(file, rank));
+			const bool above = mv > upper;
+			const bool below = mv < lower;
+			const bool within = !above && !below;
+			if (prev_state[file][rank] != STATE_ABOVE_THRESHOLD && above) {
+				shell_print(sh, "+%c%d", 'A' + file, rank + 1);
 				prev_state[file][rank] = STATE_ABOVE_THRESHOLD;
 			} else if (prev_state[file][rank] != STATE_BELOW_THRESHOLD && below) {
-				shell_print(sh,
-					    "Offset crossed below threshold on %c%d: %d mV",
-					    'A' + file, rank + 1,
-					    chessboard_get_mv_offset(file, rank));
+				shell_print(sh, "-%c%d", 'A' + file, rank + 1);
 				prev_state[file][rank] = STATE_BELOW_THRESHOLD;
-			} else if (prev_state[file][rank] != STATE_WITHIN_THRESHOLD && !above && !below) {
-				shell_print(sh,
-					    "Offset within threshold on %c%d: %d mV",
-					    'A' + file, rank + 1,
-					    chessboard_get_mv_offset(file, rank));
+			} else if (prev_state[file][rank] != STATE_WITHIN_THRESHOLD && within) {
+				shell_print(sh, " %c%d", 'A' + file, rank + 1);
 				prev_state[file][rank] = STATE_WITHIN_THRESHOLD;
+			} else {
+				// no state change
 			}
 		}
 
@@ -164,8 +156,8 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv
 			break;
 		}
 
-		k_yield();
 		file = (file + 1) % 8;
+		k_yield();
 	}
 
 	return 0;
@@ -186,9 +178,9 @@ static int cmd_board_monitor_file_offset_voltage(const struct shell *sh, size_t 
 static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(sh, "Usage: board monitor threshold <mV> [interval_ms]\n"
-				"- <mV>: threshold in millivolts for absolute offset\n"
-				"- [interval_ms]: optional polling interval, default yield");
+		shell_print(sh, "Usage: board monitor threshold <mV> [hysteresis_mV]\n"
+				"- <mV>: center threshold in millivolts for absolute offset\n"
+				"- [hysteresis_mV]: half-band around threshold (default 0)");
 		return -EINVAL;
 	}
 
@@ -199,18 +191,18 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 		return -EINVAL;
 	}
 
-	uint32_t interval_ms = 0;
+	long hysteresis = 0;
 	if (argc >= 3) {
-		long interval = strtol(argv[2], &end, 10);
-		if (*end != '\0' || interval < 0) {
-			shell_error(sh, "Invalid interval: %s", argv[2]);
+		hysteresis = strtol(argv[2], &end, 10);
+		if (*end != '\0' || hysteresis < 0) {
+			shell_error(sh, "Invalid hysteresis: %s", argv[2]);
 			return -EINVAL;
 		}
-		interval_ms = (uint32_t)interval;
 	}
 
-	shell_print(sh, "Monitoring offset crossings > %ld mV. Press 'q' to quit.", threshold);
-	return monitor_offset_threshold(sh, (int32_t)threshold, interval_ms);
+	shell_print(sh, "Monitoring around %ld mV (±%ld mV). Press 'q' to quit.", threshold,
+		    hysteresis);
+	return monitor_offset_threshold(sh, (int32_t)threshold, (int32_t)hysteresis);
 }
 
 static int cmd_print_board_voltage(const struct shell *sh, size_t argc, char **argv)
@@ -250,15 +242,15 @@ SHELL_STATIC_SUBCMD_SET_CREATE(calib_cmds,
 					 cmd_set_board_calibration),
 			       SHELL_SUBCMD_SET_END);
 
-SHELL_STATIC_SUBCMD_SET_CREATE(
-	monitor,
-	SHELL_CMD(voltage, NULL, "Monitor chess board voltages", cmd_board_monitor_file_voltage),
-	SHELL_CMD(offset, NULL, "Monitor chess board offset voltages",
-		  cmd_board_monitor_file_offset_voltage),
-	SHELL_CMD(threshold, NULL,
-		  "Notify when offset crosses threshold: threshold <mV> [interval_ms]",
-		  cmd_board_monitor_offset_threshold),
-	SHELL_SUBCMD_SET_END);
+SHELL_STATIC_SUBCMD_SET_CREATE(monitor,
+			       SHELL_CMD(voltage, NULL, "Monitor chess board voltages",
+					 cmd_board_monitor_file_voltage),
+			       SHELL_CMD(offset, NULL, "Monitor chess board offset voltages",
+					 cmd_board_monitor_file_offset_voltage),
+			       SHELL_CMD(threshold, NULL,
+					 "Notify with hysteresis: threshold <mV> [hysteresis_mV]",
+					 cmd_board_monitor_offset_threshold),
+			       SHELL_SUBCMD_SET_END);
 
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	chess_cmds,
