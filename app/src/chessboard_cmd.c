@@ -41,7 +41,7 @@ static int print_mv(const struct shell *sh, int32_t (*get_value_func)(uint8_t, u
 
 	for (int rank = 7; rank >= 0; rank--) {
 		shell_fprintf(sh, SHELL_NORMAL, "%d", rank + 1);
-		for (int file = 0; file < 8; file++) {
+		for (int file = 0; file < CHESS_NUM_FILES; file++) {
 			shell_fprintf(sh, SHELL_NORMAL, "|");
 			val_mv = get_value_func(file, rank);
 			shell_fprintf(sh, SHELL_NORMAL, "%4d", val_mv);
@@ -59,7 +59,7 @@ static int print_mv_file(const struct shell *sh, int32_t (*get_value_func)(uint8
 	chessboard_scan_file(file);
 
 	shell_fprintf(sh, SHELL_NORMAL, "%c", 'A' + file);
-	for (int rank = 0; rank < 8; rank++) {
+	for (int rank = 0; rank < CHESS_NUM_RANKS; rank++) {
 		shell_fprintf(sh, SHELL_NORMAL, "|");
 		val_mv = get_value_func(file, rank);
 		shell_fprintf(sh, SHELL_NORMAL, "%4d", val_mv);
@@ -90,7 +90,7 @@ static bool monitor_command_shall_quit(const struct shell *sh)
 static int monitor_file(const struct shell *sh, int32_t (*get_value_func)(uint8_t, uint8_t))
 {
 	while (1) {
-		for (uint8_t file = CHESS_FILE_A; file <= CHESS_FILE_H; file++) {
+		for (uint8_t file = 0; file < CHESS_NUM_FILES; file++) {
 			print_mv_file(sh, get_value_func, file);
 		}
 
@@ -111,9 +111,9 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t negative_thr
 #define STATE_NEUTRAL  2
 #define STATE_UNKNOWN  3
 
-	uint8_t prev_state[8][8];
-	for (int file = 0; file < 8; file++) {
-		for (int rank = 0; rank < 8; rank++) {
+	uint8_t prev_state[CHESS_NUM_FILES][CHESS_NUM_RANKS];
+	for (int file = 0; file < CHESS_NUM_FILES; file++) {
+		for (int rank = 0; rank < CHESS_NUM_RANKS; rank++) {
 			prev_state[file][rank] = STATE_UNKNOWN;
 		}
 	}
@@ -123,7 +123,7 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t negative_thr
 	while (1) {
 		chessboard_scan_file(file);
 
-		for (uint8_t rank = CHESS_RANK_1; rank <= CHESS_RANK_8; rank++) {
+		for (uint8_t rank = 0; rank < CHESS_NUM_RANKS; rank++) {
 			const int32_t mv = chessboard_get_mv_offset(file, rank);
 
 			int32_t negative = negative_threshold_mv;
@@ -161,7 +161,7 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t negative_thr
 			break;
 		}
 
-		file = (file + 1) % 8;
+		file = (file + 1) % CHESS_NUM_FILES;
 		k_yield();
 	}
 
