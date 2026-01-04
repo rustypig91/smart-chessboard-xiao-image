@@ -103,12 +103,12 @@ static int monitor_file(const struct shell *sh, int32_t (*get_value_func)(uint8_
 	return 0;
 }
 
-static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv,
+static int monitor_offset_threshold(const struct shell *sh, int32_t negative_threshold_mv, int32_t positive_threshold_mv,
 				    int32_t hysteresis_mv)
 {
-#define STATE_BELOW_THRESHOLD  0
-#define STATE_ABOVE_THRESHOLD  1
-#define STATE_WITHIN_THRESHOLD 2
+#define STATE_NEGATIVE  0
+#define STATE_POSITIVE  1
+#define STATE_NEUTRAL 2
 #define STATE_UNKNOWN          3
 
 	uint8_t prev_state[8][8];
@@ -124,29 +124,34 @@ static int monitor_offset_threshold(const struct shell *sh, int32_t threshold_mv
 		chessboard_scan_file(file);
 
 		for (uint8_t rank = CHESS_RANK_1; rank <= CHESS_RANK_8; rank++) {
-			int32_t mv = chessboard_get_mv_offset(file, rank);
+			const int32_t mv = chessboard_get_mv_offset(file, rank);
 
-			int32_t lower = -threshold_mv;
-			int32_t upper = threshold_mv;
+			int32_t negative = negative_threshold_mv;
+			int32_t positive = positive_threshold_mv;
 
-			if (prev_state[file][rank] == STATE_ABOVE_THRESHOLD) {
-				upper -= hysteresis_mv;
-			} else if (prev_state[file][rank] == STATE_BELOW_THRESHOLD) {
-				lower += hysteresis_mv;
+			if (prev_state[file][rank] == STATE_POSITIVE) {
+				negative -= hysteresis_mv;
+				positive -= hysteresis_mv;
+			} else if (prev_state[file][rank] == STATE_NEGATIVE) {
+				negative += hysteresis_mv;
+				positive += hysteresis_mv;
+			} else if (prev_state[file][rank] == STATE_NEUTRAL) {
+				negative -= hysteresis_mv;
+				positive += hysteresis_mv;
 			}
 
-			const bool above = mv > upper;
-			const bool below = mv < lower;
+			const bool above = mv > positive;
+			const bool below = mv < negative;
 			const bool within = !above && !below;
-			if (prev_state[file][rank] != STATE_ABOVE_THRESHOLD && above) {
+			if ((prev_state[file][rank] != STATE_POSITIVE) && above) {
 				shell_print(sh, "+%c%d", 'A' + file, rank + 1);
-				prev_state[file][rank] = STATE_ABOVE_THRESHOLD;
-			} else if (prev_state[file][rank] != STATE_BELOW_THRESHOLD && below) {
+				prev_state[file][rank] = STATE_POSITIVE;
+			} else if ((prev_state[file][rank] != STATE_NEGATIVE) && below) {
 				shell_print(sh, "-%c%d", 'A' + file, rank + 1);
-				prev_state[file][rank] = STATE_BELOW_THRESHOLD;
-			} else if (prev_state[file][rank] != STATE_WITHIN_THRESHOLD && within) {
+				prev_state[file][rank] = STATE_NEGATIVE;
+			} else if ((prev_state[file][rank] != STATE_NEUTRAL) && within) {
 				shell_print(sh, " %c%d", 'A' + file, rank + 1);
-				prev_state[file][rank] = STATE_WITHIN_THRESHOLD;
+				prev_state[file][rank] = STATE_NEUTRAL;
 			} else {
 				// no state change
 			}
@@ -177,32 +182,51 @@ static int cmd_board_monitor_file_offset_voltage(const struct shell *sh, size_t 
 
 static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t argc, char **argv)
 {
-	if (argc < 2) {
-		shell_print(sh, "Usage: board monitor threshold <mV> [hysteresis_mV]\n"
-				"- <mV>: center threshold in millivolts for absolute offset\n"
-				"- [hysteresis_mV]: half-band around threshold (default 0)");
+	if (argc < 3) {
+		shell_print(sh, "Usage: board monitor threshold <negative_threshold_mV> <positive_threshold_mV> [hysteresis_mV]\n"
+				"- <negative_threshold_mV>: threshold for negative offset notification\n"
+				"- <positive_threshold_mV>: threshold for positive offset notification\n"
+				"- [hysteresis_mV]: optional hysteresis value to avoid notification flooding\n");
+
 		return -EINVAL;
 	}
 
-	char *end;
-	long threshold = strtol(argv[1], &end, 10);
-	if (*end != '\0') {
-		shell_error(sh, "Invalid threshold: %s", argv[1]);
-		return -EINVAL;
+	int err = 0;
+	long negative_threshold_mv = shell_strtol(argv[1], 10, &err);
+
+	if (err != 0) {
+		shell_error(sh, "Invalid negative threshold: %s", argv[1]);
+		return err;
+	} else if ((negative_threshold_mv < INT32_MIN) || (negative_threshold_mv > INT32_MAX)) {
+		shell_error(sh, "Negative threshold out of range: %s", argv[1]);
+		return -ERANGE;
 	}
 
-	long hysteresis = 0;
+	long positive_threshold_mv = shell_strtol(argv[2], 10, &err);
+	if (err != 0) {
+		shell_error(sh, "Invalid positive threshold: %s", argv[2]);
+		return err;
+	} else if ((positive_threshold_mv < INT32_MIN) || (positive_threshold_mv > INT32_MAX) || (positive_threshold_mv <= negative_threshold_mv)) {
+		shell_error(sh, "Positive threshold out of range: %s", argv[2]);
+		return -ERANGE;
+	}
+
+	unsigned long hysteresis = 0;
 	if (argc >= 3) {
-		hysteresis = strtol(argv[2], &end, 10);
-		if (*end != '\0' || hysteresis < 0) {
-			shell_error(sh, "Invalid hysteresis: %s", argv[2]);
-			return -EINVAL;
+		hysteresis = shell_strtoul(argv[3], 10, &err);
+		if (err != 0) {
+			shell_error(sh, "Invalid hysteresis: %s", argv[3]);
+			return err;
+		}
+		else if (hysteresis > INT32_MAX) {
+			shell_error(sh, "Hysteresis too large: %s", argv[3]);
+			return -ERANGE;
 		}
 	}
 
-	shell_print(sh, "Monitoring around %ld mV (±%ld mV). Press 'q' to quit.", threshold,
-		    hysteresis);
-	return monitor_offset_threshold(sh, (int32_t)threshold, (int32_t)hysteresis);
+	shell_print(sh, "Monitoring offsets with thresholds: negative=%d mV, positive=%d mV, hysteresis=%d mV\n",
+		    (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis);
+	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis);
 }
 
 static int cmd_print_board_voltage(const struct shell *sh, size_t argc, char **argv)
