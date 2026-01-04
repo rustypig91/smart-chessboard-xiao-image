@@ -103,13 +103,13 @@ static int monitor_file(const struct shell *sh, int32_t (*get_value_func)(uint8_
 	return 0;
 }
 
-static int monitor_offset_threshold(const struct shell *sh, int32_t negative_threshold_mv, int32_t positive_threshold_mv,
-				    int32_t hysteresis_mv)
+static int monitor_offset_threshold(const struct shell *sh, int32_t negative_threshold_mv,
+				    int32_t positive_threshold_mv, int32_t hysteresis_mv)
 {
-#define STATE_NEGATIVE  0
-#define STATE_POSITIVE  1
-#define STATE_NEUTRAL 2
-#define STATE_UNKNOWN          3
+#define STATE_NEGATIVE 0
+#define STATE_POSITIVE 1
+#define STATE_NEUTRAL  2
+#define STATE_UNKNOWN  3
 
 	uint8_t prev_state[8][8];
 	for (int file = 0; file < 8; file++) {
@@ -182,12 +182,16 @@ static int cmd_board_monitor_file_offset_voltage(const struct shell *sh, size_t 
 
 static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t argc, char **argv)
 {
-	if ((argc < 3) || (argc > 5)) {
+	if ((argc < 3) || (argc > 4)) {
 		shell_print(sh, "Invalid number of arguments (%d)", argc);
-		shell_print(sh, "Usage: board monitor threshold <negative_threshold_mV> <positive_threshold_mV> [hysteresis_mV]\n"
-				"- <negative_threshold_mV>: threshold for negative offset notification\n"
-				"- <positive_threshold_mV>: threshold for positive offset notification\n"
-				"- [hysteresis_mV]: optional hysteresis value to avoid notification flooding\n");
+		shell_print(
+			sh,
+			"Usage: board monitor threshold <negative_threshold_mV> "
+			"<positive_threshold_mV> [hysteresis_mV]\n"
+			"- <negative_threshold_mV>: threshold for negative offset notification\n"
+			"- <positive_threshold_mV>: threshold for positive offset notification\n"
+			"- [hysteresis_mV]: optional hysteresis value to avoid notification "
+			"flooding\n");
 
 		return -EINVAL;
 	}
@@ -207,7 +211,8 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 	if (err != 0) {
 		shell_error(sh, "Invalid positive threshold: %s", argv[2]);
 		return err;
-	} else if ((positive_threshold_mv < INT32_MIN) || (positive_threshold_mv > INT32_MAX) || (positive_threshold_mv <= negative_threshold_mv)) {
+	} else if ((positive_threshold_mv < INT32_MIN) || (positive_threshold_mv > INT32_MAX) ||
+		   (positive_threshold_mv <= negative_threshold_mv)) {
 		shell_error(sh, "Positive threshold out of range: %s", argv[2]);
 		return -ERANGE;
 	}
@@ -218,14 +223,14 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 		if (err != 0) {
 			shell_error(sh, "Invalid hysteresis: %s", argv[3]);
 			return err;
-		}
-		else if (hysteresis_mv > INT32_MAX) {
+		} else if (hysteresis_mv > INT32_MAX) {
 			shell_error(sh, "Hysteresis too large: %s", argv[3]);
 			return -ERANGE;
 		}
 	}
 
-	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis_mv);
+	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv,
+					(int32_t)positive_threshold_mv, (int32_t)hysteresis_mv);
 }
 
 static int cmd_print_board_voltage(const struct shell *sh, size_t argc, char **argv)
@@ -265,15 +270,15 @@ SHELL_STATIC_SUBCMD_SET_CREATE(calib_cmds,
 					 cmd_set_board_calibration),
 			       SHELL_SUBCMD_SET_END);
 
-SHELL_STATIC_SUBCMD_SET_CREATE(monitor,
-			       SHELL_CMD(voltage, NULL, "Monitor chess board voltages",
-					 cmd_board_monitor_file_voltage),
-			       SHELL_CMD(offset, NULL, "Monitor chess board offset voltages",
-					 cmd_board_monitor_file_offset_voltage),
-			       SHELL_CMD(threshold, NULL,
-					 "Notify with hysteresis: threshold <mV> [hysteresis_mV]",
-					 cmd_board_monitor_offset_threshold),
-			       SHELL_SUBCMD_SET_END);
+SHELL_STATIC_SUBCMD_SET_CREATE(
+	monitor,
+	SHELL_CMD(voltage, NULL, "Monitor chess board voltages", cmd_board_monitor_file_voltage),
+	SHELL_CMD(offset, NULL, "Monitor chess board offset voltages",
+		  cmd_board_monitor_file_offset_voltage),
+	SHELL_CMD(threshold, NULL,
+		  "Notify with hysteresis: threshold <negative_mV> <positive_mV> [hysteresis_mV]",
+		  cmd_board_monitor_offset_threshold),
+	SHELL_SUBCMD_SET_END);
 
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	chess_cmds,
