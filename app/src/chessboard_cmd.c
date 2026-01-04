@@ -104,7 +104,7 @@ static int monitor_file(const struct shell *sh, int32_t (*get_value_func)(uint8_
 }
 
 static int monitor_offset_threshold(const struct shell *sh, int32_t negative_threshold_mv,
-				    int32_t positive_threshold_mv, int32_t hysteresis_mv)
+				    int32_t positive_threshold_mv, uint16_t hysteresis_mv)
 {
 #define STATE_NEGATIVE 0
 #define STATE_POSITIVE 1
@@ -202,18 +202,14 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 	if (err != 0) {
 		shell_error(sh, "Invalid negative threshold: %s", argv[1]);
 		return err;
-	} else if ((negative_threshold_mv < INT32_MIN) || (negative_threshold_mv > INT32_MAX)) {
-		shell_error(sh, "Negative threshold out of range: %s", argv[1]);
-		return -ERANGE;
 	}
 
 	long positive_threshold_mv = shell_strtol(argv[2], 10, &err);
 	if (err != 0) {
 		shell_error(sh, "Invalid positive threshold: %s", argv[2]);
 		return err;
-	} else if ((positive_threshold_mv < INT32_MIN) || (positive_threshold_mv > INT32_MAX) ||
-		   (positive_threshold_mv <= negative_threshold_mv)) {
-		shell_error(sh, "Positive threshold out of range: %s", argv[2]);
+	} else if (positive_threshold_mv <= negative_threshold_mv) {
+		shell_error(sh, "Positive threshold must be greater than negative threshold");
 		return -ERANGE;
 	}
 
@@ -223,14 +219,14 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 		if (err != 0) {
 			shell_error(sh, "Invalid hysteresis: %s", argv[3]);
 			return err;
-		} else if (hysteresis_mv > INT32_MAX) {
+		} else if (hysteresis_mv > UINT16_MAX) {
 			shell_error(sh, "Hysteresis too large: %s", argv[3]);
 			return -ERANGE;
 		}
 	}
 
 	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv,
-					(int32_t)positive_threshold_mv, (int32_t)hysteresis_mv);
+					(int32_t)positive_threshold_mv, (uint16_t)hysteresis_mv);
 }
 
 static int cmd_print_board_voltage(const struct shell *sh, size_t argc, char **argv)
