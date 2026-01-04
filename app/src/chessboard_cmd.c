@@ -182,7 +182,8 @@ static int cmd_board_monitor_file_offset_voltage(const struct shell *sh, size_t 
 
 static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t argc, char **argv)
 {
-	if (argc < 3) {
+	if ((argc < 3) || (argc > 5)) {
+		shell_print(sh, "Invalid number of arguments (%d)", argc);
 		shell_print(sh, "Usage: board monitor threshold <negative_threshold_mV> <positive_threshold_mV> [hysteresis_mV]\n"
 				"- <negative_threshold_mV>: threshold for negative offset notification\n"
 				"- <positive_threshold_mV>: threshold for positive offset notification\n"
@@ -211,22 +212,20 @@ static int cmd_board_monitor_offset_threshold(const struct shell *sh, size_t arg
 		return -ERANGE;
 	}
 
-	unsigned long hysteresis = 0;
-	if (argc >= 3) {
-		hysteresis = shell_strtoul(argv[3], 10, &err);
+	unsigned long hysteresis_mv = 0;
+	if (argc >= 4) {
+		hysteresis_mv = shell_strtoul(argv[3], 10, &err);
 		if (err != 0) {
 			shell_error(sh, "Invalid hysteresis: %s", argv[3]);
 			return err;
 		}
-		else if (hysteresis > INT32_MAX) {
+		else if (hysteresis_mv > INT32_MAX) {
 			shell_error(sh, "Hysteresis too large: %s", argv[3]);
 			return -ERANGE;
 		}
 	}
 
-	shell_print(sh, "Monitoring offsets with thresholds: negative=%d mV, positive=%d mV, hysteresis=%d mV\n",
-		    (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis);
-	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis);
+	return monitor_offset_threshold(sh, (int32_t)negative_threshold_mv, (int32_t)positive_threshold_mv, (int32_t)hysteresis_mv);
 }
 
 static int cmd_print_board_voltage(const struct shell *sh, size_t argc, char **argv)
